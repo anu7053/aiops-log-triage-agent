@@ -1,27 +1,43 @@
-name: AIOps Incident Triage Workflow
+import os
+from google import genai
 
-on:
-  workflow_dispatch:
-  push:
-    branches: [ "main" ]
+# Initialize the AI Agent using your GitHub Secret
+client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
 
-jobs:
-  run-ai-agent:
-    runs-on: ubuntu-latest
+def inspect_system_logs():
+    """Simulates pulling failed service logs from a Linux/AWS server."""
+    return """
+    Nov 12 07:45:12 ip-10-0-1-45 systemd: Starting nginx.service - A high performance web server...
+    Nov 12 07:45:12 ip-10-0-1-45 nginx: nginx: [emerg] bind() to 0.0.0.0:80 failed (98: Address already in use)
+    Nov 12 07:45:12 ip-10-0-1-45 systemd: nginx.service: Control process exited, code=exited, status=1/FAILURE
+    Nov 12 07:45:12 ip-10-0-1-45 systemd: Failed to start nginx.service.
+    """
 
-    steps:
-      - name: Checkout Repository Code
-        uses: actions/checkout@v4
+def run_triage_agent():
+    print("AIOps Agent started: Collecting server logs...")
+    logs = inspect_system_logs()
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
+    prompt = f"""
+    You are a Senior AWS & Linux Site Reliability Engineer (SRE).
+    Analyze the following server failure log and provide:
+    1. Root Cause Summary (1 sentence)
+    2. Exact Linux/AWS CLI commands to diagnose and fix the issue
+    3. Prevention recommendation
 
-      - name: Install AI SDK Dependencies
-        run: pip install google-genai
+    Logs:
+    {logs}
+    """
 
-      - name: Run AIOps Log Triage Agent
-        env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python agent.py
+    print("Analyzing failure with AI...")
+    response = client.models.generate_content(
+        model="gemini-2.5-flash",
+        contents=prompt,
+    )
+
+    print("\n" + "="*50)
+    print("AUTOMATED INCIDENT TRIAGE REPORT")
+    print("="*50)
+    print(response.text)
+
+if __name__ == "__main__":
+    run_triage_agent()
