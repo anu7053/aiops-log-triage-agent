@@ -57,6 +57,9 @@ def run_autonomous_agent():
                 print("📋 AUTONOMOUS SRE AGENT TRIAGE REPORT")
                 print("="*55)
                 print(response.text)
+                if "GITHUB_STEP_SUMMARY" in os.environ:
+                    with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+                         f.write(response.text)                     
                 return
             except APIError as e:
                 print(f"⚠️ Temporary API issue on {model_name}: {e.message}")
@@ -66,3 +69,5 @@ def run_autonomous_agent():
 
 if __name__ == "__main__":
     run_autonomous_agent()
+    
+    
